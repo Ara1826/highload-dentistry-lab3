@@ -1,0 +1,9 @@
+.git
+.gradle
+.gradle-home
+build
+**/build
+.idea
+tasks
+*.log
+.env

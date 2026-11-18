@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/001-catalog-schema.sql
+  - include:
+      file: db/changelog/changes/002-case-insensitive-uniqueness.sql
+  - include:
+      file: db/changelog/changes/003-authentication-and-roles.sql
+  - include:
+      file: db/changelog/changes/004-user-version.sql
