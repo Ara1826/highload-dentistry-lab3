@@ -43,6 +43,13 @@ flowchart LR
 
 Нужен Docker с Compose.
 
+Скачайте проект через **Code → Download ZIP** на GitHub и распакуйте архив либо клонируйте репозиторий:
+
+```bash
+git clone https://github.com/Ara1826/highload-dentistry-lab3.git
+cd highload-dentistry-lab3
+```
+
 ```bash
 cp .env.example .env
 ```
