@@ -21,10 +21,12 @@ import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "appointments")
 public class Appointment {
@@ -86,9 +88,6 @@ public class Appointment {
     @OneToMany(mappedBy = "appointment", orphanRemoval = true, fetch = FetchType.LAZY)
     @Setter(AccessLevel.NONE)
     private List<AppointmentProcedure> procedures = new ArrayList<>();
-
-    protected Appointment() {
-    }
 
     @PrePersist
     void onCreate() {

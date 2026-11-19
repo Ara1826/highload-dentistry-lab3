@@ -19,10 +19,12 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "appointment_procedures")
 public class AppointmentProcedure {
@@ -60,7 +62,4 @@ public class AppointmentProcedure {
     @Max(32)
     @Column(name = "tooth_number")
     private Integer toothNumber;
-
-    protected AppointmentProcedure() {
-    }
 }

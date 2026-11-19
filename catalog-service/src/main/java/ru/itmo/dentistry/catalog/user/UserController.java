@@ -1,6 +1,8 @@
 package ru.itmo.dentistry.catalog.user;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -35,7 +37,31 @@ public class UserController {
     @PostMapping
     @PreAuthorize("hasRole('SUPERVISOR')")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Create a user")
+    @Operation(summary = "Create a user", requestBody =
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(content =
+                    @Content(mediaType = "application/json", examples = {
+                            @ExampleObject(name = "Patient", summary = "Create a patient", value = """
+                                    {
+                                      "fullName": "Иван Иванов",
+                                      "phone": "+79995551903",
+                                      "email": "patient.test3@example.com",
+                                      "password": "PatientDemo123!",
+                                      "role": "PATIENT"
+                                    }
+                                    """),
+                            @ExampleObject(name = "Doctor", summary = "Create a doctor", value = """
+                                    {
+                                      "fullName": "Анна Смирнова",
+                                      "phone": "+79995551904",
+                                      "email": "doctor.test3@example.com",
+                                      "password": "DoctorDemo123!",
+                                      "role": "DOCTOR",
+                                      "specializations": ["THERAPIST"],
+                                      "workDayStart": "09:00:00",
+                                      "workDayEnd": "18:00:00"
+                                    }
+                                    """)
+                    })))
     public Mono<UserResponse> create(@Valid @RequestBody CreateUserRequest request) {
         return userService.create(request);
     }
