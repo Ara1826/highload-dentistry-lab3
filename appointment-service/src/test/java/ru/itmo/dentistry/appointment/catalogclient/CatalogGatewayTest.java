@@ -11,17 +11,20 @@ import feign.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 import ru.itmo.dentistry.appointment.common.CatalogUnavailableException;
 import ru.itmo.dentistry.appointment.common.NotFoundException;
 
+@DisplayName("Обработка ошибок вызова каталога")
 class CatalogGatewayTest {
 
     private final CatalogGateway gateway = new CatalogGateway(Mockito.mock(CatalogClient.class));
 
     @Test
+    @DisplayName("Ответ каталога 404 преобразуется в ошибку отсутствующего ресурса")
     void notFoundBecomesDomainNotFound() {
         UUID id = UUID.randomUUID();
 
@@ -32,6 +35,7 @@ class CatalogGatewayTest {
     }
 
     @Test
+    @DisplayName("Ответ каталога 503 преобразуется в ошибку недоступности")
     void otherFailuresOpenAsCatalogUnavailable() {
         CatalogUnavailableException error = assertThrows(CatalogUnavailableException.class,
                 () -> ReflectionTestUtils.invokeMethod(gateway, "procedureUnavailable", UUID.randomUUID(), feignStatus(503)));

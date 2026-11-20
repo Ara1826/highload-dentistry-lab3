@@ -6,6 +6,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = "eureka.server.wait-time-in-ms-when-sync-empty=0")
+@DisplayName("Доступность реестра Eureka")
 class EurekaServerApplicationTest {
 
     @LocalServerPort
@@ -21,6 +23,7 @@ class EurekaServerApplicationTest {
     private final HttpClient client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
 
     @Test
+    @DisplayName("Веб-интерфейс Eureka доступен")
     void dashboardIsAvailable() throws Exception {
         HttpResponse<String> response = get("/");
 
@@ -29,6 +32,7 @@ class EurekaServerApplicationTest {
     }
 
     @Test
+    @DisplayName("Реестр принимает запрос списка приложений")
     void registryAcceptsApplicationQueries() throws Exception {
         HttpResponse<String> response = get("/eureka/apps");
 

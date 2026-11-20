@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class JwtTokenService {
+public class  JwtTokenService {
     private final JwtEncoder encoder;
     @Value("${dentistry.security.jwt-ttl-seconds:900}")
     private final long ttlSeconds;

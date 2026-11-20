@@ -12,6 +12,7 @@ import jakarta.validation.Validator;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,6 +27,7 @@ import ru.itmo.dentistry.catalog.common.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
+@DisplayName("Каталог стоматологических процедур")
 class ProcedureServiceTest {
 
     @Mock
@@ -46,6 +48,7 @@ class ProcedureServiceTest {
     }
 
     @Test
+    @DisplayName("Процедура создаётся с удалением лишних пробелов")
     void createsProcedureAndTrimsName() {
         when(repository.countByNameIgnoreCaseAndIdNot(anyString(), any())).thenReturn(Mono.just(0L));
 
@@ -60,6 +63,7 @@ class ProcedureServiceTest {
     }
 
     @Test
+    @DisplayName("Повторное название процедуры отклоняется")
     void rejectsDuplicateName() {
         when(repository.countByNameIgnoreCaseAndIdNot(anyString(), any())).thenReturn(Mono.just(1L));
 
@@ -69,6 +73,7 @@ class ProcedureServiceTest {
     }
 
     @Test
+    @DisplayName("Отсутствующая процедура возвращает ошибку поиска")
     void missingProcedureIsNotFound() {
         UUID id = UUID.randomUUID();
         when(repository.findById(id)).thenReturn(Mono.empty());
@@ -79,6 +84,7 @@ class ProcedureServiceTest {
     }
 
     @Test
+    @DisplayName("Процедуру можно отключить")
     void deactivatesProcedure() {
         ProcedureAccount procedure = ProcedureAccount.create();
         procedure.setName("Cleaning");
@@ -94,5 +100,33 @@ class ProcedureServiceTest {
 
     private static DentalProcedureRequest request(String name, String description) {
         return new DentalProcedureRequest(name, description, new BigDecimal("1500.00"), 30);
+    }
+
+    @Test
+    @DisplayName("Процедура обновляется, а список возвращается с общим количеством")
+    void updatesAndListsProcedures() {
+        var procedure = ProcedureAccount.create();
+        procedure.setName("Old");
+        procedure.setBasePrice(BigDecimal.ONE);
+        procedure.setDurationMinutes(10);
+        when(repository.findById(procedure.getId())).thenReturn(Mono.just(procedure));
+        when(repository.countByNameIgnoreCaseAndIdNot(anyString(), any())).thenReturn(Mono.just(0L));
+        StepVerifier.create(service.update(procedure.getId(), request(" New ", null)))
+                .assertNext(response -> assertEquals("New", response.name())).verifyComplete();
+        when(repository.findBy(any())).thenReturn(reactor.core.publisher.Flux.just(procedure));
+        when(repository.count()).thenReturn(Mono.just(1L));
+        StepVerifier.create(service.findAll(0, 20))
+                .assertNext(page -> assertEquals(1, page.total())).verifyComplete();
+        when(repository.countByNameIgnoreCaseAndIdNot(anyString(), any())).thenReturn(Mono.just(1L));
+        StepVerifier.create(service.update(procedure.getId(), request("Duplicate", null)))
+                .expectError(ConflictException.class).verify();
+    }
+
+    @Test
+    @DisplayName("Сущность процедуры отклоняет отрицательную цену")
+    void validatesEntity() {
+        when(repository.countByNameIgnoreCaseAndIdNot(anyString(), any())).thenReturn(Mono.just(0L));
+        StepVerifier.create(service.create(new DentalProcedureRequest("Invalid", null, BigDecimal.valueOf(-1), 30)))
+                .expectError(jakarta.validation.ConstraintViolationException.class).verify();
     }
 }

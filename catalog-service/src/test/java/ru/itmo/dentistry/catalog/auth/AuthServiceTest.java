@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +17,7 @@ import ru.itmo.dentistry.catalog.user.UserAccount;
 import ru.itmo.dentistry.catalog.user.UserRepository;
 import ru.itmo.dentistry.catalog.user.UserRole;
 
+@DisplayName("Вход в систему")
 class AuthServiceTest {
     private UserRepository users;
     private PasswordEncoder passwords;
@@ -31,6 +33,7 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Активный пользователь с верным паролем получает токен")
     void successfulLoginIssuesTokenForActiveUser() {
         UserAccount user = account();
         when(users.findByEmailIgnoreCase("doctor@example.com")).thenReturn(Mono.just(user));
@@ -46,6 +49,7 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Неверный пароль отклоняется с кодом 401")
     void invalidPasswordIsRejected() {
         UserAccount user = account();
         when(users.findByEmailIgnoreCase("doctor@example.com")).thenReturn(Mono.just(user));
@@ -58,6 +62,7 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Неактивный пользователь не может войти")
     void inactiveUserCannotLogin() {
         UserAccount user = account();
         user.setActive(false);
@@ -69,6 +74,7 @@ class AuthServiceTest {
     }
 
     @Test
+    @DisplayName("Пароль длиннее 72 байт UTF-8 отклоняется до проверки BCrypt")
     void rejectsPasswordsBeyondBCryptByteLimit() {
         StepVerifier.create(service.login(new LoginRequest("doctor@example.com", "я".repeat(37))))
                 .expectErrorMatches(error -> error instanceof ResponseStatusException ex

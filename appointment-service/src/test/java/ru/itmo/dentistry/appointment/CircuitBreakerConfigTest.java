@@ -6,12 +6,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
+@DisplayName("Настройки Circuit Breaker")
 class CircuitBreakerConfigTest {
 
     @Test
+    @DisplayName("Конфигурация задаёт порог сбоев и исключает ответы 404")
     void catalogBreakerIgnoresNotFoundAndOpensAfterRepeatedFailures() throws Exception {
         Map<String, Object> catalog = catalogBreaker();
 

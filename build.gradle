@@ -1,12 +1,29 @@
+import org.gradle.api.tasks.testing.TestReport
+import org.gradle.testing.jacoco.tasks.JacocoReport
+
 plugins {
+	id 'jacoco'
 	id 'org.springframework.boot' version '4.1.1' apply false
 	id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+repositories {
+	mavenCentral()
+}
+
+jacoco {
+	toolVersion = '0.8.16'
 }
 
 subprojects {
 	apply plugin: 'java'
 	apply plugin: 'org.springframework.boot'
 	apply plugin: 'io.spring.dependency-management'
+	apply plugin: 'jacoco'
+
+	jacoco {
+		toolVersion = rootProject.jacoco.toolVersion
+	}
 
 	group = 'ru.itmo'
 	version = '0.0.1-SNAPSHOT'
@@ -35,5 +52,59 @@ subprojects {
 
 	tasks.named('test') {
 		useJUnitPlatform()
+		defaultCharacterEncoding = 'UTF-8'
+		jvmArgs '-Xshare:off'
+		systemProperty 'logging.level.root', 'OFF'
+		systemProperty 'spring.main.banner-mode', 'off'
+		testLogging {
+			events 'failed', 'skipped'
+			exceptionFormat = 'full'
+		}
+		finalizedBy tasks.named('jacocoTestReport')
+	}
+
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
+	}
+
+	tasks.named('jacocoTestReport') {
+		dependsOn tasks.named('test')
+		reports {
+			html.required = true
+			xml.required = true
+			csv.required = false
+		}
 	}
 }
+
+tasks.register('testReport', TestReport) {
+	group = 'verification'
+	description = 'Builds a single HTML report for tests from every service.'
+	destinationDirectory = layout.buildDirectory.dir('reports/tests/all')
+	testResults.from(subprojects.collect { it.tasks.named('test') })
+}
+
+tasks.register('jacocoRootReport', JacocoReport) {
+	group = 'verification'
+	description = 'Measures code coverage across all services.'
+	dependsOn subprojects.collect { it.tasks.named('test') }
+	executionData.from(subprojects.collect { it.layout.buildDirectory.file('jacoco/test.exec') })
+	classDirectories.from(subprojects.collect { it.sourceSets.main.output.classesDirs })
+	sourceDirectories.from(subprojects.collect { it.sourceSets.main.allJava.srcDirs })
+	reports {
+		html.required = true
+		html.outputLocation = layout.buildDirectory.dir('reports/jacoco/all')
+		xml.required = true
+		xml.outputLocation = layout.buildDirectory.file('reports/jacoco/all/jacoco.xml')
+		csv.required = false
+	}
+}
+
+tasks.register('test') {
+	group = 'verification'
+	description = 'Runs all service tests and generates combined test and coverage reports.'
+	dependsOn subprojects.collect { it.tasks.named('test') }
+	finalizedBy 'verificationSummary'
+}
+
+apply from: 'gradle/verification.gradle'

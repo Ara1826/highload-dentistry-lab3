@@ -1,0 +1,109 @@
+import groovy.xml.MarkupBuilder
+import groovy.xml.XmlSlurper
+
+// JaCoCo includes a DOCTYPE. External DTD loading is disabled for local reports.
+def readXml = { File file ->
+    def parser = new XmlSlurper(false, false, true)
+    parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
+    parser.parse(file)
+}
+
+def percent = { counter ->
+    long covered = counter.@covered.toLong()
+    long total = covered + counter.@missed.toLong()
+    total == 0 ? 100.0 : covered * 100.0 / total
+}
+
+tasks.register('verificationSummary') {
+    group = 'verification'
+    description = 'Shows test results and one project-wide coverage figure.'
+    dependsOn tasks.named('testReport'), tasks.named('jacocoRootReport')
+    doLast {
+        def coverage = readXml(layout.buildDirectory.file('reports/jacoco/all/jacoco.xml').get().asFile)
+        def coverageText = String.format(Locale.ROOT, '%.2f%%',
+                percent(coverage.counter.find { it.@type == 'BRANCH' }))
+        def modules = subprojects.collect { module ->
+            def suites = module.fileTree('build/test-results/test') {
+                include 'TEST-*.xml'
+            }.files.sort().collect { readXml(it) }
+            [
+                name: module.name,
+                tests: suites.sum { it.@tests.toInteger() } ?: 0,
+                failures: suites.sum { it.@failures.toInteger() + it.@errors.toInteger() } ?: 0,
+                skipped: suites.sum { it.@skipped.toInteger() } ?: 0,
+                suites: suites
+            ]
+        }
+        int totalTests = modules.sum { it.tests }
+        int totalFailures = modules.sum { it.failures }
+        int totalSkipped = modules.sum { it.skipped }
+        def output = layout.buildDirectory.file('reports/verification/index.html').get().asFile
+        output.parentFile.mkdirs()
+        output.withWriter('UTF-8') { writer ->
+            def page = new MarkupBuilder(writer)
+            page.html(lang: 'ru') {
+                head {
+                    meta(charset: 'UTF-8')
+                    meta(name: 'viewport', content: 'width=device-width, initial-scale=1')
+                    title('Тесты и покрытие стоматологии')
+                    style('''
+                        body { font: 16px/1.5 system-ui,sans-serif; color:#172b4d; background:#f5f7fa;
+                               max-width:1100px; margin:32px auto; padding:0 24px; }
+                        h1 { font-size:30px; } h2 { margin-top:32px; }
+                        .metrics { display:flex; flex-wrap:wrap; gap:16px; }
+                        .metric { background:white; border:1px solid #dce3ec; padding:20px; flex:1; min-width:180px; }
+                        .metric strong { display:block; font-size:36px; }
+                        table { width:100%; border-collapse:collapse; background:white; margin:12px 0; }
+                        td,th { text-align:left; border-bottom:1px solid #dce3ec; padding:10px 14px; }
+                        th { background:#e8edf4; } .pass { color:#116b39; } .fail { color:#b42318; }
+                        a { color:#0055b8; } details { background:white; margin:12px 0; padding:14px; }
+                        summary { cursor:pointer; font-weight:600; } small { color:#52647b; }
+                    ''')
+                }
+                body {
+                    h1('Тесты и покрытие стоматологии')
+                    p("Обновлено ${java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern('dd.MM.yyyy HH:mm'))}")
+                    div(class: 'metrics') {
+                        div(class: 'metric') { strong("${totalTests - totalFailures - totalSkipped}/${totalTests}"); span('успешных тестов') }
+                        div(class: 'metric') { strong(coverageText); span('Тестовое покрытие') }
+                    }
+                    p {
+                        a(href: '../jacoco/all/index.html', 'Открыть покрытие по классам и строкам')
+                        mkp.yield(' · ')
+                        a(href: '../tests/all/index.html', 'Открыть подробные результаты Gradle')
+                    }
+                    h2('Результаты по сервисам')
+                    table {
+                        tr { th('Сервис'); th('Тестов'); th('Ошибок'); th('Пропущено') }
+                        modules.each { module ->
+                            tr { td(module.name); td(module.tests); td(module.failures); td(module.skipped) }
+                        }
+                    }
+                    h2('Что проверяет каждый тест')
+                    modules.each { module ->
+                        h3(module.name)
+                        module.suites.each { suite ->
+                            details(open: 'open') {
+                                summary(suite.@name.text())
+                                table {
+                                    suite.testcase.each { test ->
+                                        def failed = !test.failure.isEmpty() || !test.error.isEmpty()
+                                        def skipped = !test.skipped.isEmpty()
+                                        tr {
+                                            td(test.@name.text())
+                                            td(class: failed ? 'fail' : 'pass', failed ? 'Ошибка' : skipped ? 'Пропущен' : 'Пройден')
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        logger.quiet('')
+        logger.quiet("Tests: ${totalTests - totalFailures - totalSkipped}/${totalTests} passed")
+        logger.quiet("Test coverage: ${coverageText}")
+        logger.quiet('Report: ' + output.toURI())
+    }
+}

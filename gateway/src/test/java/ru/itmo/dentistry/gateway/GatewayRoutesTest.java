@@ -7,12 +7,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
 
+@DisplayName("Маршрутизация Gateway")
 class GatewayRoutesTest {
 
     @Test
+    @DisplayName("Пользователи направляются в каталог, свободные окна в сервис приёмов")
     void routesUsersToCatalogAndAvailabilityToAppointments() throws Exception {
         List<Map<String, Object>> routes = routes();
 
